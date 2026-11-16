@@ -24,11 +24,12 @@ public class SecurityConfig {
 
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
-                        .requestMatchers(HttpMethod.DELETE, "/api/huespedes/**").hasRole("ADMIN")
+                       // .requestMatchers(HttpMethod.DELETE, "/api/huespedes/**").hasRole("ADMIN")
 
-                        .anyRequest().hasAnyRole("USER", "ADMIN"))
+                    //    .anyRequest().hasAnyRole("USER", "ADMIN"))
+                        .anyRequest().permitAll())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt ->
-                        jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+                      jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
 
         return http.build();
     }
