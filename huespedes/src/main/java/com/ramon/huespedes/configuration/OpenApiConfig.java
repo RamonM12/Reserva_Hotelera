@@ -23,11 +23,11 @@ public class OpenApiConfig {
                         .description("API para la gestión de huéspedes del hotel"))
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:8080")
-                                .description("Servidor de API Gateway"),
+                                .url("http://localhost:8082")
+                                .description("Servidor de localhost"),
                         new Server()
-                                .url("http://localhost:8081")
-                                .description("Servidor de localhost")
+                                .url("http://localhost:8080")
+                                .description("Servidor de API Gateway")
                 ))
 
                 .components(new Components()
