@@ -1,0 +1,41 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          x-forwarded:
+            prefix-enabeled: true
+          routes:
+            - id: ruta-huespedes
+              uri: lb://huespedes
+              predicates:
+                - Path=/api/huespedes/**
+              filters:
+                - StripPrefix=2
+
+            - id: ruta-reservaciones
+              uri: lb://reservaciones
+              predicates:
+                - Path=/api/reservaciones/**
+              filters:
+                - StripPrefix=2
+
+            - id: ruta-habitaciones
+              uri: lb://habitaciones
+              predicates:
+                - Path=/api/habitaciones/**
+              filters:
+                - StripPrefix=2
+    loadbalancer:
+      enabeled: true
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true
