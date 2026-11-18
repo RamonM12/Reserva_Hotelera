@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8090
 
 spring:
   application:
@@ -8,31 +8,29 @@ spring:
     gateway:
       server:
         webflux:
-          x-forwarded:
-            prefix-enabeled: true
           routes:
             - id: ruta-huespedes
               uri: lb://huespedes
               predicates:
                 - Path=/api/huespedes/**
-              filters:
-                - StripPrefix=2
 
-            - id: ruta-reservaciones
-              uri: lb://reservaciones
+            - id: ruta-reservas
+              uri: lb://reservas
               predicates:
-                - Path=/api/reservaciones/**
-              filters:
-                - StripPrefix=2
+                - Path=/api/reservas/**
 
             - id: ruta-habitaciones
               uri: lb://habitaciones
               predicates:
                 - Path=/api/habitaciones/**
-              filters:
-                - StripPrefix=2
-    loadbalancer:
-      enabeled: true
+
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origins: "http://localhost:4200"
+                allowed-methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+                allowed-headers: "*"
+
 eureka:
   client:
     service-url:

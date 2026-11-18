@@ -26,7 +26,7 @@ public class OpenApiConfig {
                                 .url("http://localhost:8082")
                                 .description("Servidor de localhost"),
                         new Server()
-                                .url("http://localhost:8080")
+                                .url("http://localhost:8090")
                                 .description("Servidor de API Gateway")
                 ))
 

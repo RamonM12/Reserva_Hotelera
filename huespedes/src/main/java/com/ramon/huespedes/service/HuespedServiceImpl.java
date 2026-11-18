@@ -1,6 +1,7 @@
 package com.ramon.huespedes.service;
 
 
+import com.ramon.commons.clients.ReservaClient;
 import com.ramon.commons.dto.huesped.HuespedRequest;
 import com.ramon.commons.dto.huesped.HuespedResponse;
 import com.ramon.commons.enums.EstadoRegistro;
@@ -13,6 +14,9 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ramon.commons.exceptions.EntidadRelacionadaException;
+import com.ramon.commons.exceptions.ServicioNoDisponibleException;
+import feign.FeignException;
 
 import java.util.List;
 
@@ -24,6 +28,7 @@ public class HuespedServiceImpl implements HuespedService {
 
     private final HuespedRepository huespedRepository;
     private final HuespedMapper huespedMapper;
+    private final ReservaClient reservaClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -84,8 +89,13 @@ public class HuespedServiceImpl implements HuespedService {
         log.info("Eliminando huésped {}", id);
         Huesped huesped = buscarActivo(id);
 
-        // TODO: cuando exista Reservas, preguntar por Feign si el huésped
+        // Notion 6.2: no se puede eliminar un huésped con reservas CONFIRMADA o EN_CURSO -> 409
+        if (tieneReservasVigentes(id)) {
+            throw new EntidadRelacionadaException(
+                    "No se puede eliminar el huésped porque tiene reservas CONFIRMADA o EN_CURSO");
+        }
 
+        // Borrado lógico (Notion 5.1)
         huesped.setEstadoRegistro(EstadoRegistro.ELIMINADO);
         huespedRepository.save(huesped);
     }
@@ -107,6 +117,15 @@ public class HuespedServiceImpl implements HuespedService {
         if (huespedRepository.existsByTipoDocumentoAndNumeroDocumentoAndEstadoRegistroAndIdNot(
                 huesped.getTipoDocumento(), huesped.getNumeroDocumento(), EstadoRegistro.ACTIVO, idExcluir)) {
             throw new ConflictException("Ya existe un huésped activo con ese documento");
+        }
+    }
+
+    // Pregunta a Reservas por Feign. Si Reservas está caído -> 503
+    private boolean tieneReservasVigentes(Long idHuesped) {
+        try {
+            return Boolean.TRUE.equals(reservaClient.tieneReservasVigentes(idHuesped));
+        } catch (FeignException e) {
+            throw new ServicioNoDisponibleException("El servicio de reservas no está disponible");
         }
     }
 }
