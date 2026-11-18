@@ -21,14 +21,15 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Swagger es público
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        // Reportes: solo ADMIN (Notion 7)
-                        .requestMatchers("/api/reservas/reportes/**").hasRole("ADMIN")
-                        // Eliminar reservas: solo ADMIN (Notion 3)
-                        .requestMatchers(HttpMethod.DELETE, "/api/reservas/**").hasRole("ADMIN")
-                        // Todo lo demás (incluye check-in, check-out, cancelación e internos): USER o ADMIN
-                        .anyRequest().hasAnyRole("USER", "ADMIN"))
+                                // TEMPORAL: todo abierto hasta que llegue el auth del profe
+                                .anyRequest().permitAll()
+
+                        // Cuando llegue el auth, borra el permitAll de arriba y descomenta esto:
+                        // .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // .requestMatchers("/api/reservas/reportes/**").hasRole("ADMIN")
+                        // .requestMatchers(HttpMethod.DELETE, "/api/reservas/**").hasRole("ADMIN")
+                        // .anyRequest().hasAnyRole("USER", "ADMIN")
+                )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt ->
                         jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
 

@@ -13,10 +13,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequestMapping("/api/habitaciones")
 @Tag(name = "API Habitaciones", description = "Métodos para la gestión de habitaciones")
 public class HabitacionController extends CrudController<HabitacionRequest, HabitacionResponse, HabitacionService> {
 
@@ -34,5 +37,23 @@ public class HabitacionController extends CrudController<HabitacionRequest, Habi
             @PathVariable @Positive(message = "El ID debe ser positivo") Long id
     ) {
         return ResponseEntity.ok(service.obtenerHabitacionSinValidarEstado(id));
+    }
+
+    @PatchMapping("/{id}/estado/{idEstado}")
+    @Operation(summary = "Cambiar el estado de una habitación (solo ADMIN)")
+    public ResponseEntity<HabitacionResponse> cambiarEstado(
+            @PathVariable @Positive(message = "El ID debe ser positivo") Long id,
+            @PathVariable Integer idEstado
+    ) {
+        return ResponseEntity.ok(service.cambiarEstado(id, idEstado));
+    }
+
+    @PatchMapping("/id-habitacion/{id}/estado/{idEstado}")
+    @Operation(summary = "Cambiar estado de la habitación (uso interno de Reservas)")
+    public ResponseEntity<HabitacionResponse> cambiarEstadoInterno(
+            @PathVariable @Positive(message = "El ID debe ser positivo") Long id,
+            @PathVariable Integer idEstado
+    ) {
+        return ResponseEntity.ok(service.cambiarEstadoInterno(id, idEstado));
     }
 }

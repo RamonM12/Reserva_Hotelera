@@ -83,8 +83,8 @@ public class ReservaServiceImpl implements ReservaService {
         if (habitacion.estadoRegistro() == EstadoRegistro.ELIMINADO) {
             throw new ConflictException("La habitación " + habitacion.id() + " está eliminada");
         }
-        if (habitacion.estado() != EstadoHabitacion.DISPONIBLE) {
-            throw new ConflictException("La habitación no está DISPONIBLE, está en " + habitacion.estado());
+        if (habitacion.estadoHabitacion() != EstadoHabitacion.DISPONIBLE) {
+            throw new ConflictException("La habitación no está DISPONIBLE, está en " + habitacion.estadoHabitacion());
         }
         if (request.numeroPersonas() > habitacion.capacidad()) {
             throw new ConflictException("El número de personas excede la capacidad de la habitación ("

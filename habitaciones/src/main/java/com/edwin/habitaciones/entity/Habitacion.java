@@ -4,6 +4,7 @@ import com.ramon.commons.enums.EstadoHabitacion;
 import com.ramon.commons.enums.EstadoRegistro;
 import com.ramon.commons.enums.TipoHabitacion;
 import com.ramon.commons.exceptions.ConflictException;
+import com.ramon.commons.exceptions.DatoInvalidoException;
 import com.ramon.commons.utils.ValoresNumericosUtils;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -26,7 +27,7 @@ public class Habitacion {
     @Column(name = "ID_HABITACION")
     private Long id;
 
-    @Column(name = "NUMERO", nullable = false, unique = true)
+    @Column(name = "NUMERO", nullable = false)          // sin unique (Notion 5.2)
     private Long numero;
 
     @Column(name = "PRECIO", nullable = false)
@@ -36,7 +37,7 @@ public class Habitacion {
     private Long capacidad;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ESTADO_HABITACION", nullable = false)
+    @Column(name = "ESTADO", nullable = false)          // antes ESTADO_HABITACION
     private EstadoHabitacion estadoHabitacion;
 
     @Enumerated(EnumType.STRING)
@@ -44,7 +45,7 @@ public class Habitacion {
     private EstadoRegistro estadoRegistro;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "TIPO_HABITACION", nullable = false)
+    @Column(name = "TIPO", nullable = false)            // antes TIPO_HABITACION
     private TipoHabitacion tipoHabitacion;
 
     // ==========================================
@@ -63,7 +64,7 @@ public class Habitacion {
         ValoresNumericosUtils.validarLongPositivo(capacidad, "La capacidad de la habitación debe ser al menos 1.");
 
         if (tipoHabitacion == null) {
-            throw new IllegalArgumentException("El tipo de habitación es obligatorio.");
+            throw new DatoInvalidoException("El tipo de habitación es obligatorio."); // 400, antes daba 500
         }
     }
 
@@ -79,7 +80,15 @@ public class Habitacion {
 
     public void eliminar() {
         validarNoEliminado();
+        if (this.estadoHabitacion == EstadoHabitacion.OCUPADA) {
+            throw new ConflictException("No se puede eliminar una habitación OCUPADA."); // Notion 6.3
+        }
         this.estadoRegistro = EstadoRegistro.ELIMINADO;
+    }
+
+    // NUEVO: el service decide si la transición es válida
+    public void cambiarEstado(EstadoHabitacion nuevoEstado) {
+        this.estadoHabitacion = nuevoEstado;
     }
 
     public static Habitacion crear(Long numero, BigDecimal precio, Long capacidad, TipoHabitacion tipoHabitacion) {
@@ -90,8 +99,8 @@ public class Habitacion {
                 .precio(precio)
                 .capacidad(capacidad)
                 .tipoHabitacion(tipoHabitacion)
-                .estadoHabitacion(EstadoHabitacion.DISPONIBLE) // Estado inicial según requerimiento
-                .estadoRegistro(EstadoRegistro.ACTIVO)       // Estado de registro inicial
+                .estadoHabitacion(EstadoHabitacion.DISPONIBLE)
+                .estadoRegistro(EstadoRegistro.ACTIVO)
                 .build();
     }
 }
