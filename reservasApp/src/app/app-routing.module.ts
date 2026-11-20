@@ -32,6 +32,18 @@ const routes: Routes = [
         canActivate: [roleGuard],
         data: {roles: [ROLES[0], ROLES[1]]},
         loadChildren: () => import('./huespedes/huespedes.module').then(m => m.HuespedesModule)
+      },
+      {
+        path: 'habitaciones',
+        canActivate: [roleGuard],
+        data: { roles: [ROLES[0], ROLES[1]] },
+        loadChildren: () => import('./habitaciones/habitaciones.module').then(m => m.HabitacionesModule)
+      },
+      {
+        path: 'reservaciones',
+        canActivate: [roleGuard],
+        data: { roles: [ROLES[0], ROLES[1]] },
+        loadChildren: () => import('./reservas/reservas.module').then(m => m.ReservasModule)
       }
     ]
   },

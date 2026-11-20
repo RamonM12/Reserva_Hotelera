@@ -1,0 +1,15 @@
+.encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tabla {
+  width: 100%;
+}
+
+.sin-datos {
+  padding: 16px;
+  text-align: center;
+}
