@@ -24,11 +24,11 @@ public class Reserva {
     @Column(name = "ID_RESERVA")
     private Long id;
 
-    // Sin @ManyToOne: el huésped vive en otro microservicio, se consulta por Feign
+
     @Column(name = "ID_HUESPED", nullable = false)
     private Long idHuesped;
 
-    // Igual: la habitación vive en otro microservicio
+
     @Column(name = "ID_HABITACION", nullable = false)
     private Long idHabitacion;
 
@@ -41,11 +41,11 @@ public class Reserva {
     @Column(name = "NUMERO_PERSONAS", nullable = false)
     private Integer numeroPersonas;
 
-    // Copia del precio de la habitación al crear (Notion 4.3)
+
     @Column(name = "PRECIO_NOCHE", nullable = false)
     private BigDecimal precioNoche;
 
-    // noches x precioNoche, lo calcula el backend (Notion 4.3)
+
     @Column(name = "PRECIO_TOTAL", nullable = false)
     private BigDecimal precioTotal;
 

@@ -22,11 +22,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
-                        // Internos: los llama Reservas con el token del usuario (USER o ADMIN)
+
                         .requestMatchers("/api/habitaciones/id-habitacion/**").hasAnyRole("USER", "ADMIN")
-                        // Consultar habitaciones: USER o ADMIN (Notion 3)
+
                         .requestMatchers(HttpMethod.GET, "/api/habitaciones/**").hasAnyRole("USER", "ADMIN")
-                        // Crear, PUT, PATCH de estado y eliminar: solo ADMIN (Notion 3)
+
                         .anyRequest().hasRole("ADMIN"))
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt ->
                         jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
@@ -34,8 +34,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Lee los roles del claim "roles" del token y les pone el prefijo ROLE_
-    // para que funcione hasRole("ADMIN")
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();

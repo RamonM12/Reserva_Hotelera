@@ -12,8 +12,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class ReservaMapper {
 
-    // Entity -> Response
-    //El huésped y la habitación ya llegan consultados por Feign desde el service
     public ReservaResponse entityToResponse(Reserva reserva,
                                             HuespedResponse huesped,
                                             HabitacionResponse habitacion) {
@@ -31,8 +29,7 @@ public class ReservaMapper {
                 reserva.getEstadoRegistro());
     }
 
-    // Request -> Entity
-    // Los precios NO vienen del cliente: los calcula el service (Notion 4.3)
+
     public Reserva requestToEntity(ReservaRequest request) {
         if (request == null) return null;
         Reserva reserva = new Reserva();
@@ -41,8 +38,8 @@ public class ReservaMapper {
         reserva.setFechaEntrada(request.fechaEntrada());
         reserva.setFechaSalida(request.fechaSalida());
         reserva.setNumeroPersonas(request.numeroPersonas());
-        reserva.setEstado(EstadoReserva.CONFIRMADA);      // Inicial: CONFIRMADA
-        reserva.setEstadoRegistro(EstadoRegistro.ACTIVO); // Inicial: ACTIVO
+        reserva.setEstado(EstadoReserva.CONFIRMADA);
+        reserva.setEstadoRegistro(EstadoRegistro.ACTIVO);
         return reserva;
     }
 }

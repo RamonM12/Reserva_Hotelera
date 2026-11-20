@@ -36,7 +36,7 @@ import java.util.Map;
 @Slf4j
 public class ReservaServiceImpl implements ReservaService {
 
-    // Reserva vigente = CONFIRMADA o EN_CURSO (Notion 6.4)
+
     private static final List<EstadoReserva> VIGENTES =
             List.of(EstadoReserva.CONFIRMADA, EstadoReserva.EN_CURSO);
 
@@ -45,7 +45,6 @@ public class ReservaServiceImpl implements ReservaService {
     private final HuespedClient huespedClient;
     private final HabitacionClient habitacionClient;
 
-    /* ============================ CONSULTAS ============================ */
 
     @Override
     @Transactional(readOnly = true)
@@ -63,8 +62,6 @@ public class ReservaServiceImpl implements ReservaService {
         return toResponse(buscarActiva(id));
     }
 
-    /* ============================ CREAR ============================ */
-
     @Override
     public ReservaResponse registrar(ReservaRequest request) {
         log.info("Registrando reserva para huésped {} en habitación {}",
@@ -72,13 +69,12 @@ public class ReservaServiceImpl implements ReservaService {
 
         validarFechas(request.fechaEntrada(), request.fechaSalida());
 
-        // Paso 1: validar el huésped (Feign). Inexistente -> 404, ELIMINADO -> 409
+
         HuespedResponse huesped = obtenerHuesped(request.idHuesped());
         if (huesped.estadoRegistro() == EstadoRegistro.ELIMINADO) {
             throw new ConflictException("El huésped " + huesped.id() + " está eliminado");
         }
 
-        // Validar la habitación (Feign). Inexistente -> 404, ELIMINADA o no DISPONIBLE -> 409
         HabitacionResponse habitacion = obtenerHabitacion(request.idHabitacion());
         if (habitacion.estadoRegistro() == EstadoRegistro.ELIMINADO) {
             throw new ConflictException("La habitación " + habitacion.id() + " está eliminada");
@@ -94,46 +90,44 @@ public class ReservaServiceImpl implements ReservaService {
             throw new ConflictException("La habitación ya tiene una reserva vigente");
         }
 
-        // Paso 2: cambiar la habitación de DISPONIBLE a OCUPADA (Feign)
+
         HabitacionResponse habitacionOcupada =
                 cambiarEstadoHabitacion(habitacion.id(), EstadoHabitacion.OCUPADA);
 
-        // Paso 3: calcular precios y guardar. Si falla, se compensa la habitación
+
         try {
             Reserva reserva = reservaMapper.requestToEntity(request);
-            reserva.setPrecioNoche(habitacion.precio()); // copia del precio al crear
+            reserva.setPrecioNoche(habitacion.precio());
             reserva.setPrecioTotal(calcularTotal(habitacion.precio(),
                     reserva.getFechaEntrada(), reserva.getFechaSalida()));
             reserva = reservaRepository.saveAndFlush(reserva);
             return reservaMapper.entityToResponse(reserva, huesped, habitacionOcupada);
         } catch (RuntimeException e) {
             log.error("Falló al guardar la reserva, regresando la habitación a DISPONIBLE", e);
-            cambiarEstadoHabitacion(habitacion.id(), EstadoHabitacion.DISPONIBLE); // compensación
+            cambiarEstadoHabitacion(habitacion.id(), EstadoHabitacion.DISPONIBLE);
             throw e;
         }
     }
-
-    /* ============================ MODIFICAR ============================ */
 
     @Override
     public ReservaResponse actualizar(Long id, ReservaRequest request) {
         log.info("Actualizando reserva {}", id);
         Reserva reserva = buscarActiva(id);
 
-        // Huésped y habitación nunca cambian (Notion 6.4) -> 409
+
         if (!reserva.getIdHuesped().equals(request.idHuesped())
                 || !reserva.getIdHabitacion().equals(request.idHabitacion())) {
             throw new ConflictException(
                     "No se puede cambiar el huésped ni la habitación. Cancele la reserva y cree otra");
         }
-        // numeroPersonas se fija al crear (Notion 4.3)
+
         if (!reserva.getNumeroPersonas().equals(request.numeroPersonas())) {
             throw new ConflictException("El número de personas no se puede modificar");
         }
 
         validarFechas(request.fechaEntrada(), request.fechaSalida());
 
-        // Qué se puede modificar depende del estado (Notion 6.4)
+
         switch (reserva.getEstado()) {
             case CONFIRMADA -> {
                 reserva.setFechaEntrada(request.fechaEntrada());
@@ -150,49 +144,48 @@ public class ReservaServiceImpl implements ReservaService {
                     "Una reserva " + reserva.getEstado() + " no se puede modificar");
         }
 
-        // Al cambiar fechas se recalcula el total
+
         reserva.setPrecioTotal(calcularTotal(reserva.getPrecioNoche(),
                 reserva.getFechaEntrada(), reserva.getFechaSalida()));
 
         return toResponse(reservaRepository.save(reserva));
     }
 
-    /* ============================ CAMBIAR ESTADO ============================ */
+
 
     @Override
     public ReservaResponse cambiarEstado(Long idReserva, Integer idEstado) {
-        // idEstado fuera de 1 a 4 -> 400
+
         EstadoReserva nuevo = EstadoReserva.fromId(idEstado);
         if (nuevo == null) {
             throw new DatoInvalidoException("Estado inválido: " + idEstado + ". Debe ser de 1 a 4");
         }
 
-        // Reserva inexistente -> 404
+
         Reserva reserva = buscarActiva(idReserva);
         EstadoReserva actual = reserva.getEstado();
         log.info("Reserva {}: {} -> {}", idReserva, actual, nuevo);
 
-        // 1 -> 2 Check-in: la habitación sigue OCUPADA
         if (actual == EstadoReserva.CONFIRMADA && nuevo == EstadoReserva.EN_CURSO) {
             reserva.setEstado(EstadoReserva.EN_CURSO);
             return toResponse(reservaRepository.save(reserva));
         }
 
-        // 2 -> 3 Check-out: la habitación pasa a LIMPIEZA
+
         if (actual == EstadoReserva.EN_CURSO && nuevo == EstadoReserva.FINALIZADA) {
             return cambiarReservaYHabitacion(reserva, EstadoReserva.FINALIZADA, EstadoHabitacion.LIMPIEZA);
         }
 
-        // 1 -> 4 Cancelación: la habitación pasa a DISPONIBLE
+
         if (actual == EstadoReserva.CONFIRMADA && nuevo == EstadoReserva.CANCELADA) {
             return cambiarReservaYHabitacion(reserva, EstadoReserva.CANCELADA, EstadoHabitacion.DISPONIBLE);
         }
 
-        // Cualquier otra transición -> 409
+
         throw new ConflictException("Transición no permitida: " + actual + " -> " + nuevo);
     }
 
-    // Cambia la habitación y la reserva. Si falla la reserva, regresa la habitación a OCUPADA
+
     private ReservaResponse cambiarReservaYHabitacion(Reserva reserva,
                                                       EstadoReserva nuevoEstado,
                                                       EstadoHabitacion estadoHabitacion) {
@@ -209,14 +202,11 @@ public class ReservaServiceImpl implements ReservaService {
         }
     }
 
-    /* ============================ ELIMINAR ============================ */
-
     @Override
     public void eliminar(Long id) {
         log.info("Eliminando reserva {}", id);
         Reserva reserva = buscarActiva(id);
 
-        // Solo FINALIZADA o CANCELADA. No afecta a la habitación (Notion 6.4)
         if (reserva.getEstado() != EstadoReserva.FINALIZADA
                 && reserva.getEstado() != EstadoReserva.CANCELADA) {
             throw new ConflictException("Solo se pueden eliminar reservas FINALIZADA o CANCELADA");
@@ -226,9 +216,6 @@ public class ReservaServiceImpl implements ReservaService {
         reservaRepository.save(reserva);
     }
 
-    /* ============================ REPORTES ============================ */
-
-    // Todas las reservas, sin importar estado ni estadoRegistro (Notion 7)
     @Override
     @Transactional(readOnly = true)
     public List<ReservaResponse> reporteHistorico() {
@@ -238,7 +225,6 @@ public class ReservaServiceImpl implements ReservaService {
                 .toList();
     }
 
-    // Agrupadas por EstadoReserva, incluidas las ELIMINADAS (Notion 7)
     @Override
     @Transactional(readOnly = true)
     public Map<EstadoReserva, List<ReservaResponse>> reportePorEstado() {
@@ -253,7 +239,6 @@ public class ReservaServiceImpl implements ReservaService {
         return reporte;
     }
 
-    /* ============================ INTERNOS ============================ */
 
     @Override
     @Transactional(readOnly = true)
@@ -261,7 +246,6 @@ public class ReservaServiceImpl implements ReservaService {
         return reservaRepository.existsByIdHuespedAndEstadoIn(idHuesped, VIGENTES);
     }
 
-    // Regresa numeroPersonas de la reserva vigente, o 0 si no hay
     @Override
     @Transactional(readOnly = true)
     public Integer personasReservaVigente(Long idHabitacion) {
@@ -270,34 +254,29 @@ public class ReservaServiceImpl implements ReservaService {
                 .orElse(0);
     }
 
-    /* ============================ AYUDANTES ============================ */
 
     private Reserva buscarActiva(Long id) {
         return reservaRepository.findByIdAndEstadoRegistro(id, EstadoRegistro.ACTIVO)
                 .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró la reserva con id " + id));
     }
 
-    // Solo se exige fechaEntrada < fechaSalida (Notion 4.3) -> 400
     private void validarFechas(LocalDate fechaEntrada, LocalDate fechaSalida) {
         if (!fechaEntrada.isBefore(fechaSalida)) {
             throw new DatoInvalidoException("La fecha de entrada debe ser menor que la fecha de salida");
         }
     }
 
-    // noches = fechaSalida - fechaEntrada en días; total = noches x precioNoche
     private BigDecimal calcularTotal(BigDecimal precioNoche, LocalDate fechaEntrada, LocalDate fechaSalida) {
         long noches = ChronoUnit.DAYS.between(fechaEntrada, fechaSalida);
         return precioNoche.multiply(BigDecimal.valueOf(noches));
     }
 
-    // Arma la respuesta con los datos del huésped y la habitación (Notion 6.4)
     private ReservaResponse toResponse(Reserva reserva) {
         return reservaMapper.entityToResponse(reserva,
                 obtenerHuesped(reserva.getIdHuesped()),
                 obtenerHabitacion(reserva.getIdHabitacion()));
     }
 
-    /* ---------- Llamadas Feign con su manejo de errores ---------- */
 
     private HuespedResponse obtenerHuesped(Long id) {
         try {
