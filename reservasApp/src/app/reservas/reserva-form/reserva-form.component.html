@@ -1,0 +1,66 @@
+<h2 mat-dialog-title>{{ esEdicion ? 'Editar' : 'Nueva' }} reserva</h2>
+
+<form [formGroup]="form" (ngSubmit)="guardar()">
+  <mat-dialog-content>
+
+    <!-- NUEVA: se eligen huésped y habitación -->
+    <ng-container *ngIf="!esEdicion">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Huésped</mat-label>
+        <mat-select formControlName="idHuesped">
+          <mat-option *ngFor="let h of huespedes" [value]="h.id">
+            {{ h.nombre }} {{ h.apellido }} — {{ h.numeroDocumento }}
+          </mat-option>
+        </mat-select>
+        <mat-error>{{ form.get('idHuesped')?.getError('servidor') || 'Selecciona un huésped' }}</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Habitación (solo disponibles)</mat-label>
+        <mat-select formControlName="idHabitacion">
+          <mat-option *ngFor="let h of habitaciones" [value]="h.id">
+            {{ h.numero }} — {{ tipoHabitacionLabels[h.tipoHabitacion] }} — ${{ h.precio }} / noche
+          </mat-option>
+        </mat-select>
+        <mat-error>{{ form.get('idHabitacion')?.getError('servidor') || 'Selecciona una habitación' }}</mat-error>
+      </mat-form-field>
+    </ng-container>
+
+    <!-- EDICIÓN: huésped y habitación no se cambian, solo se muestran -->
+    <ng-container *ngIf="esEdicion && data">
+      <p><strong>Huésped:</strong> {{ data.huesped.nombre }} {{ data.huesped.apellido }}</p>
+      <p><strong>Habitación:</strong> {{ data.habitacion.numero }}</p>
+    </ng-container>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Fecha de entrada</mat-label>
+      <input matInput type="date" formControlName="fechaEntrada">
+      <mat-error>{{ form.get('fechaEntrada')?.getError('servidor') || 'La fecha de entrada es obligatoria' }}</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Fecha de salida</mat-label>
+      <input matInput type="date" formControlName="fechaSalida">
+      <mat-error>{{ form.get('fechaSalida')?.getError('servidor') || 'La fecha de salida es obligatoria' }}</mat-error>
+    </mat-form-field>
+
+    <p class="error" *ngIf="form.hasError('fechasInvalidas')">
+      La fecha de entrada debe ser anterior a la fecha de salida
+    </p>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Número de personas</mat-label>
+      <input matInput type="number" formControlName="numeroPersonas" min="1" step="1">
+      <mat-hint *ngIf="capacidadSeleccionada">Capacidad máxima: {{ capacidadSeleccionada }}</mat-hint>
+      <mat-error>{{ form.get('numeroPersonas')?.getError('servidor') || 'Debe ser al menos 1 persona' }}</mat-error>
+    </mat-form-field>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="cancelar()" [disabled]="guardando">Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="guardando">
+      {{ guardando ? 'Guardando...' : 'Guardar' }}
+    </button>
+  </mat-dialog-actions>
+</form>
