@@ -24,7 +24,7 @@ public class HuespedMapper {
                 huesped.getEstadoRegistro());
     }
 
-    // Request -> Entity (normaliza los datos como pide el Notion 5.2)
+
     public Huesped requestToEntity(HuespedRequest request) {
         if (request == null) return null;
         Huesped huesped = new Huesped();

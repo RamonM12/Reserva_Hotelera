@@ -27,7 +27,7 @@ public class Habitacion {
     @Column(name = "ID_HABITACION")
     private Long id;
 
-    @Column(name = "NUMERO", nullable = false)          // sin unique (Notion 5.2)
+    @Column(name = "NUMERO", nullable = false)
     private Long numero;
 
     @Column(name = "PRECIO", nullable = false)
@@ -37,7 +37,7 @@ public class Habitacion {
     private Long capacidad;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ESTADO", nullable = false)          // antes ESTADO_HABITACION
+    @Column(name = "ESTADO", nullable = false)
     private EstadoHabitacion estadoHabitacion;
 
     @Enumerated(EnumType.STRING)
@@ -45,12 +45,8 @@ public class Habitacion {
     private EstadoRegistro estadoRegistro;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "TIPO", nullable = false)            // antes TIPO_HABITACION
+    @Column(name = "TIPO", nullable = false)
     private TipoHabitacion tipoHabitacion;
-
-    // ==========================================
-    // MÉTODOS DE NEGOCIO Y VALIDACIONES
-    // ==========================================
 
     private void validarNoEliminado() {
         if (this.estadoRegistro == EstadoRegistro.ELIMINADO) {
@@ -86,7 +82,6 @@ public class Habitacion {
         this.estadoRegistro = EstadoRegistro.ELIMINADO;
     }
 
-    // NUEVO: el service decide si la transición es válida
     public void cambiarEstado(EstadoHabitacion nuevoEstado) {
         this.estadoHabitacion = nuevoEstado;
     }

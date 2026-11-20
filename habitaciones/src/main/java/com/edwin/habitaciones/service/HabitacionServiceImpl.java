@@ -67,8 +67,6 @@ public class HabitacionServiceImpl implements HabitacionService {
         Habitacion habitacion = obtenerHabitacionActivaPorId(id);
         validarCambiosUnicos(request, id);
 
-        // Notion 4.3: la capacidad no puede ser menor que numeroPersonas de la reserva vigente
-        // Solo una habitación OCUPADA puede tener reserva vigente
         if (habitacion.getEstadoHabitacion() == EstadoHabitacion.OCUPADA) {
             Integer personas = obtenerPersonasReservaVigente(id);
             if (request.capacidad() < personas) {
@@ -78,7 +76,7 @@ public class HabitacionServiceImpl implements HabitacionService {
         }
 
         log.info("Actualizando habitación con id: {}", id);
-        // El PUT ignora el estado: solo cambia número, precio, capacidad y tipo (Notion 6.3)
+
         habitacion.actualizar(request.numero(), request.precio(), request.capacidad(), request.tipoHabitacion());
         habitacionRepository.saveAndFlush(habitacion);
         return habitacionMapper.entidadAResponse(habitacion);
@@ -92,12 +90,10 @@ public class HabitacionServiceImpl implements HabitacionService {
         habitacionRepository.saveAndFlush(habitacion);
     }
 
-    /* ================= CAMBIO MANUAL (ADMIN) - matriz Notion 4.2 ================= */
-
     @Override
     public HabitacionResponse cambiarEstado(Long id, Integer idEstado) {
-        EstadoHabitacion nuevo = obtenerEstado(idEstado);           // fuera de 1-4 -> 400
-        Habitacion habitacion = obtenerHabitacionActivaPorId(id);   // no existe -> 404
+        EstadoHabitacion nuevo = obtenerEstado(idEstado);
+        Habitacion habitacion = obtenerHabitacionActivaPorId(id);
         EstadoHabitacion actual = habitacion.getEstadoHabitacion();
         log.info("Cambio manual de habitación {}: {} -> {}", id, actual, nuevo);
 
@@ -110,14 +106,12 @@ public class HabitacionServiceImpl implements HabitacionService {
         if (nuevo == actual) {
             throw new ConflictException("La habitación ya se encuentra en " + actual);
         }
-        // Lo que queda son movimientos entre DISPONIBLE, LIMPIEZA y MANTENIMIENTO: todos permitidos
 
         habitacion.cambiarEstado(nuevo);
         habitacionRepository.saveAndFlush(habitacion);
         return habitacionMapper.entidadAResponse(habitacion);
     }
 
-    /* ================= CAMBIO AUTOMÁTICO (desde Reservas) ================= */
 
     @Override
     public HabitacionResponse cambiarEstadoInterno(Long id, Integer idEstado) {
@@ -128,10 +122,10 @@ public class HabitacionServiceImpl implements HabitacionService {
         log.info("Cambio automático de habitación {}: {} -> {}", id, actual, nuevo);
 
         boolean valida =
-                (actual == EstadoHabitacion.DISPONIBLE && nuevo == EstadoHabitacion.OCUPADA)    // crear reserva
-                        || (actual == EstadoHabitacion.OCUPADA && nuevo == EstadoHabitacion.LIMPIEZA)      // check-out
-                        || (actual == EstadoHabitacion.OCUPADA && nuevo == EstadoHabitacion.DISPONIBLE)    // cancelación / compensación
-                        || (actual == EstadoHabitacion.LIMPIEZA && nuevo == EstadoHabitacion.OCUPADA);     // compensación de check-out
+                (actual == EstadoHabitacion.DISPONIBLE && nuevo == EstadoHabitacion.OCUPADA)
+                        || (actual == EstadoHabitacion.OCUPADA && nuevo == EstadoHabitacion.LIMPIEZA)
+                        || (actual == EstadoHabitacion.OCUPADA && nuevo == EstadoHabitacion.DISPONIBLE)
+                        || (actual == EstadoHabitacion.LIMPIEZA && nuevo == EstadoHabitacion.OCUPADA);
 
         if (!valida) {
             throw new ConflictException("Transición no permitida: " + actual + " -> " + nuevo);
@@ -142,7 +136,7 @@ public class HabitacionServiceImpl implements HabitacionService {
         return habitacionMapper.entidadAResponse(habitacion);
     }
 
-    /* ================= AYUDANTES ================= */
+
 
     private Habitacion obtenerHabitacionActivaPorId(Long id) {
         log.info("Buscando habitación activa con id {}", id);
@@ -150,7 +144,7 @@ public class HabitacionServiceImpl implements HabitacionService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Habitación activa no encontrada con id: " + id));
     }
 
-    // idEstado fuera de catálogo -> 400 (Notion 5.4)
+
     private EstadoHabitacion obtenerEstado(Integer idEstado) {
         EstadoHabitacion estado = idEstado == null ? null : EstadoHabitacion.fromId(idEstado);
         if (estado == null) {

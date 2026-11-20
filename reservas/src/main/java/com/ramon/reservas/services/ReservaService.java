@@ -21,12 +21,12 @@ public interface ReservaService {
 
     void eliminar(Long id);
 
-    // Reportes (solo ADMIN)
+
     List<ReservaResponse> reporteHistorico();
 
     Map<EstadoReserva, List<ReservaResponse>> reportePorEstado();
 
-    // Internos: los usan Huéspedes y Habitaciones por Feign
+
     boolean tieneReservasVigentes(Long idHuesped);
 
     Integer personasReservaVigente(Long idHabitacion);
