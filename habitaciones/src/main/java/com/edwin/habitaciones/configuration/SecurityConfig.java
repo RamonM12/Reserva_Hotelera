@@ -21,29 +21,26 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Swagger es público
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-
-                        // ===== TEMPORAL: regresar cuando llegue el auth del profe =====
-                        // .requestMatchers("/api/habitaciones/id-habitacion/**").hasAnyRole("USER", "ADMIN")
-                        // .requestMatchers(HttpMethod.GET, "/api/habitaciones/**").hasAnyRole("USER", "ADMIN")
-                        // .requestMatchers(HttpMethod.POST, "/api/habitaciones/**").hasRole("ADMIN")
-                        // .requestMatchers(HttpMethod.PUT, "/api/habitaciones/**").hasRole("ADMIN")
-                        // .requestMatchers(HttpMethod.PATCH, "/api/habitaciones/**").hasRole("ADMIN")
-                        // .requestMatchers(HttpMethod.DELETE, "/api/habitaciones/**").hasRole("ADMIN")
-                        // .anyRequest().authenticated())
-                        .anyRequest().permitAll())
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
+                        // Internos: los llama Reservas con el token del usuario (USER o ADMIN)
+                        .requestMatchers("/api/habitaciones/id-habitacion/**").hasAnyRole("USER", "ADMIN")
+                        // Consultar habitaciones: USER o ADMIN (Notion 3)
+                        .requestMatchers(HttpMethod.GET, "/api/habitaciones/**").hasAnyRole("USER", "ADMIN")
+                        // Crear, PUT, PATCH de estado y eliminar: solo ADMIN (Notion 3)
+                        .anyRequest().hasRole("ADMIN"))
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt ->
                         jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
 
         return http.build();
     }
 
+    // Lee los roles del claim "roles" del token y les pone el prefijo ROLE_
+    // para que funcione hasRole("ADMIN")
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
         grantedAuthoritiesConverter.setAuthoritiesClaimName("roles");
-        grantedAuthoritiesConverter.setAuthorityPrefix("");
+        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
 
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
         jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
