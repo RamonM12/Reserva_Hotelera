@@ -26,6 +26,12 @@ const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: [ROLES[0]]},
         loadChildren: () => import('./usuarios/usuarios.module').then(m => m.UsuariosModule)
+      },
+      {
+        path: 'huespedes',
+        canActivate: [roleGuard],
+        data: {roles: [ROLES[0], ROLES[1]]},
+        loadChildren: () => import('./huespedes/huespedes.module').then(m => m.HuespedesModule)
       }
     ]
   },
